@@ -1,0 +1,5 @@
+{
+  "name": "quota-bar",
+  "owner": { "name": "quota-bar contributors" },
+  "plugins": [{ "name": "quota-bar", "source": "./" }]
+}
