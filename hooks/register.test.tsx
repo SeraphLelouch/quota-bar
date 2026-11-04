@@ -69,21 +69,16 @@ test('a window past its reset reads as reset, and hide hides the band', async ($
   await ui.unmount()
 })
 
-test('nothing is drawn before any figure arrives', async ($, on) => {
+test('before any figure arrives the band says it is waiting', async ($, on) => {
   mock.clock(on, { now: NOW })
   mock.store(on)
   on('command.register', () => ({ value: { command: 'quota' } }))
   on('session.usage', () => usage([]))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('ui.render', ($, e) => {
-    const { Text } = $.ui.resolve(e)
-
-    return <Text>engine</Text>
-  })
 
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
 
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
-  expect((await ui.find({ type: 'Text' }))?.text).toBe('engine')
+  expect((await ui.find({ type: 'Text' }))?.text).toContain('等待第一次回复')
   await ui.unmount()
 })

@@ -1,6 +1,6 @@
 {
   "name": "quota-bar",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "在输入框上方显示 Claude 订阅的 5 小时/7 天剩余额度和重置时间",
   "types": "./types/index.d.ts",
   "license": "MIT"

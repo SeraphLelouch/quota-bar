@@ -94,6 +94,34 @@ async function take($: EngineInterface, list: Limit[]) {
   }
 }
 
+
+// Fill the window figures from the engine, else from the last session's cache,
+// for a session this mod joined after `session.start` (an install mid-session).
+async function load($: EngineInterface): Promise<Limit[]> {
+  const have = await read($, limits)
+  if (have.length > 0) return have
+
+  try {
+    const usage = await $.session.usage()
+    if (usage.rateLimits.length > 0) {
+      await take($, usage.rateLimits)
+
+      return usage.rateLimits
+    }
+  } catch {
+    // no reading yet: fall back to the cache
+  }
+
+  const cached = await $.store.get(STORE_KEY)
+  if (isLimitList(cached) && cached.length > 0) {
+    await update($, limits, () => cached)
+
+    return cached
+  }
+
+  return []
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -114,14 +142,19 @@ export const register: Register = on => {
       $.ui.status(`额度 ${short(cached)}`)
     }
 
-    const usage = await $.session.usage()
-    await take($, usage.rateLimits)
+    await load($)
 
     return next(e)
   })
 
   on('session.measure', async ($, e, next) => {
     await take($, e.rateLimits)
+
+    return next(e)
+  })
+
+  on('turn.complete', async ($, e, next) => {
+    await load($)
 
     return next(e)
   })
@@ -134,7 +167,7 @@ export const register: Register = on => {
       return { text: arg === 'hide' ? '额度信息条已隐藏。' : '额度信息条已显示。' }
     }
 
-    const list = await read($, limits)
+    const list = await load($)
     if (list.length === 0) {
       return { text: '还没有额度数据：发一条消息后，引擎会从回复里读到额度。' }
     }
@@ -145,12 +178,16 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const list = await read($, limits)
-    if (e.props.hasSurvey || list.length === 0 || (await read($, isHidden))) {
+    if (e.props.hasSurvey || (await read($, isHidden))) {
       return next(e)
     }
 
     const { Box, Button, Text } = $.ui.resolve(e)
+    const list = await read($, limits)
+    if (list.length === 0) {
+      return <Text dimColor>额度：等待第一次回复后显示</Text>
+    }
+
     const nowMs = (await read($, now)) || (await $.clock.now())
 
     return (
