@@ -40,22 +40,20 @@ test('the status line shows what is left and when it resets', async ($, on) => {
   const { lines } = await start($, on, LIMITS)
   const line = lines.at(-1) ?? ''
 
-  expect(line).toContain('5小时 剩 62%')
-  expect(line).toContain('2小时13分后')
-  expect(line).toContain('7天 剩 14.5%')
-  expect(line).toContain('3天0小时后')
+  expect(line).toMatch(/^额度 5h 62% \S+ · 7d 14\.5% \S+$/)
+  expect(line.length).toBeLessThan(40)
 })
 
 test('the countdown moves each minute and a passed window reads as reset', async ($, on) => {
   const { lines, clock } = await start($, on, [], LIMITS)
-  expect(lines.at(-1)).toContain('5小时 剩 62%')
+  expect(lines.at(-1)).toContain('5h 62%')
 
   await clock.advance(3 * HOUR)
-  expect(lines.at(-1)).toContain('5小时 已重置')
+  expect(lines.at(-1)).toContain('5h 已重置')
 })
 
 test('with no figure yet the line says it is waiting', async ($, on) => {
   const { lines } = await start($, on, [])
 
-  expect(lines.at(-1)).toContain('等待第一次回复')
+  expect(lines.at(-1)).toContain('等待首次回复')
 })

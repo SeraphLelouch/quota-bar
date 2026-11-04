@@ -61,10 +61,22 @@ export const describe = (limit: Limit, nowMs: number) => {
   return `${head} · ${clockTime(at, nowMs)} 重置（${countdown(left)}后）`
 }
 
+const SHORT: Record<string, string> = { five_hour: '5h', seven_day: '7d' }
+
+// One window in as few cells as will do: `5h 62% 16:40`.
+const brief = (limit: Limit, nowMs: number) => {
+  const name = SHORT[limit.kind] ?? label(limit.kind)
+  const at = limit.resetsAt ? new Date(limit.resetsAt) : undefined
+  if (!at || Number.isNaN(at.getTime())) return `${name} ${remaining(limit)}%`
+  if (at.getTime() <= nowMs) return `${name} 已重置`
+
+  return `${name} ${remaining(limit)}% ${clockTime(at, nowMs).replace(/ \d\d:\d\d$/, '')}`
+}
+
 const statusText = (list: Limit[], nowMs: number) =>
   list.length === 0
-    ? '额度：等待第一次回复后显示'
-    : `额度  ${list.map(limit => describe(limit, nowMs)).join('  |  ')}`
+    ? '额度 等待首次回复'
+    : `额度 ${list.map(limit => brief(limit, nowMs)).join(' · ')}`
 
 const isLimitList = (value: unknown): value is Limit[] =>
   Array.isArray(value) &&
