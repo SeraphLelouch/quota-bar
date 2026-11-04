@@ -75,8 +75,8 @@ const brief = (limit: Limit, nowMs: number) => {
 
 const statusText = (list: Limit[], nowMs: number) =>
   list.length === 0
-    ? '额度 等待首次回复'
-    : `额度 ${list.map(limit => brief(limit, nowMs)).join(' · ')}`
+    ? '等待首次回复'
+    : list.map(limit => brief(limit, nowMs)).join(' · ')
 
 const isLimitList = (value: unknown): value is Limit[] =>
   Array.isArray(value) &&

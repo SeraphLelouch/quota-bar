@@ -40,8 +40,8 @@ test('the status line shows what is left and when it resets', async ($, on) => {
   const { lines } = await start($, on, LIMITS)
   const line = lines.at(-1) ?? ''
 
-  expect(line).toMatch(/^额度 5h 62% \S+ · 7d 14\.5% \S+$/)
-  expect(line.length).toBeLessThan(40)
+  expect(line).toMatch(/^5h 62% \S+ · 7d 14\.5% \S+$/)
+  expect(line.length).toBeLessThan(32)
 })
 
 test('the countdown moves each minute and a passed window reads as reset', async ($, on) => {
