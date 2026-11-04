@@ -17,16 +17,16 @@ Works in the Code tab / Claude Code sessions only (not Chat), and only on a subs
 At the prompt of a terminal session:
 
 ```
-/plugin install quota-bar --marketplace <owner>/<repo>
+/plugin install quota-bar --marketplace SeraphLelouch/quota-bar
 ```
 
 From a shell:
 
 ```
-claude plugin install quota-bar --marketplace <owner>/<repo>
+claude plugin install quota-bar --marketplace SeraphLelouch/quota-bar
 ```
 
-In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `<owner>/<repo>`, then Add plugin.
+In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `SeraphLelouch/quota-bar`, then Add plugin.
 
 ## License
 

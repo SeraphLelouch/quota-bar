@@ -1,5 +1,5 @@
 {
   "name": "quota-bar",
-  "owner": { "name": "quota-bar contributors" },
+  "owner": { "name": "SeraphLelouch" },
   "plugins": [{ "name": "quota-bar", "source": "./" }]
 }
