@@ -61,8 +61,10 @@ export const describe = (limit: Limit, nowMs: number) => {
   return `${head} · ${clockTime(at, nowMs)} 重置（${countdown(left)}后）`
 }
 
-const short = (list: Limit[]) =>
-  list.map(limit => `${label(limit.kind)} ${remaining(limit)}%`).join(' · ')
+const statusText = (list: Limit[], nowMs: number) =>
+  list.length === 0
+    ? '额度：等待第一次回复后显示'
+    : `额度  ${list.map(limit => describe(limit, nowMs)).join('  |  ')}`
 
 const isLimitList = (value: unknown): value is Limit[] =>
   Array.isArray(value) &&
@@ -74,6 +76,18 @@ const isLimitList = (value: unknown): value is Limit[] =>
       typeof one.percentUsed === 'number',
   )
 
+// The one place the mod draws: a status line under the prompt, beside the model picker.
+async function paint($: EngineInterface) {
+  if (await read($, isHidden)) {
+    $.ui.status(undefined)
+
+    return
+  }
+
+  const nowMs = (await read($, now)) || (await $.clock.now())
+  $.ui.status(statusText(await read($, limits), nowMs))
+}
+
 // Thresholds already toasted, one per window period: `kind@resetsAt@pct`.
 const warned = new Set<string>()
 
@@ -82,7 +96,7 @@ async function take($: EngineInterface, list: Limit[]) {
 
   await update($, limits, () => list)
   await $.store.set(STORE_KEY, list)
-  $.ui.status(`额度 ${short(list)}`)
+  await paint($)
 
   for (const limit of list) {
     const pct = WARN_AT.filter(at => limit.percentUsed >= at).pop()
@@ -115,6 +129,7 @@ async function load($: EngineInterface): Promise<Limit[]> {
   const cached = await $.store.get(STORE_KEY)
   if (isLimitList(cached) && cached.length > 0) {
     await update($, limits, () => cached)
+    await paint($)
 
     return cached
   }
@@ -126,7 +141,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'quota',
-      description: '显示 Claude 剩余额度和重置时间（/quota hide | show）',
+      description: '显示 Claude 剩余额度和重置时间（/quota hide | show 切换状态栏显示）',
     })
 
     const startedAt = await $.clock.now()
@@ -134,13 +149,14 @@ export const register: Register = on => {
     $.clock.every(60_000, async () => {
       const t = await $.clock.now()
       await update($, now, () => t)
+      await paint($)
     })
 
     const cached = await $.store.get(STORE_KEY)
     if (isLimitList(cached)) {
       await update($, limits, () => cached)
-      $.ui.status(`额度 ${short(cached)}`)
     }
+    await paint($)
 
     await load($)
 
@@ -163,8 +179,9 @@ export const register: Register = on => {
     const arg = e.args.trim()
     if (arg === 'hide' || arg === 'show') {
       await update($, isHidden, () => arg === 'hide')
+      await paint($)
 
-      return { text: arg === 'hide' ? '额度信息条已隐藏。' : '额度信息条已显示。' }
+      return { text: arg === 'hide' ? '状态栏额度已隐藏。' : '状态栏额度已显示。' }
     }
 
     const list = await load($)
@@ -175,39 +192,5 @@ export const register: Register = on => {
     const nowMs = await $.clock.now()
 
     return { text: list.map(limit => describe(limit, nowMs)).join('\n') }
-  })
-
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey || (await read($, isHidden))) {
-      return next(e)
-    }
-
-    const { Box, Button, Text } = $.ui.resolve(e)
-    const list = await read($, limits)
-    if (list.length === 0) {
-      return <Text dimColor>额度：等待第一次回复后显示</Text>
-    }
-
-    const nowMs = (await read($, now)) || (await $.clock.now())
-
-    return (
-      <Box flexDirection="row" flexWrap="wrap">
-        {list.map((limit, i) => (
-          <Text
-            color={remaining(limit) < 20 ? 'warning' : undefined}
-            dimColor={remaining(limit) >= 20}
-          >
-            {i > 0 ? '  |  ' : ''}
-            {describe(limit, nowMs)}
-          </Text>
-        ))}
-        <Text> </Text>
-        <Button
-          key="hide"
-          label="隐藏"
-          onPress={() => update($, isHidden, () => true)}
-        />
-      </Box>
-    )
   })
 }
